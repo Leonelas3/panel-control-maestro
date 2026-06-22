@@ -40,21 +40,21 @@ export default function AiSettings() {
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Esfuerzo de la IA (Tokens/Coste)</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                className={\`btn \${effort === 'fast' ? 'btn-primary' : 'btn-glass'}\`}
+                className={`btn ${effort === 'fast' ? 'btn-primary' : 'btn-glass'}`}
                 onClick={() => setEffort('fast')}
                 style={{ flex: 1 }}
               >
                 <Zap size={16} /> Rápida
               </button>
               <button 
-                className={\`btn \${effort === 'balanced' ? 'btn-primary' : 'btn-glass'}\`}
+                className={`btn ${effort === 'balanced' ? 'btn-primary' : 'btn-glass'}`}
                 onClick={() => setEffort('balanced')}
                 style={{ flex: 1 }}
               >
                 <SlidersHorizontal size={16} /> Balanceada
               </button>
               <button 
-                className={\`btn \${effort === 'deep' ? 'btn-primary' : 'btn-glass'}\`}
+                className={`btn ${effort === 'deep' ? 'btn-primary' : 'btn-glass'}`}
                 onClick={() => setEffort('deep')}
                 style={{ flex: 1 }}
               >

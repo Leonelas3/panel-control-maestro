@@ -46,7 +46,7 @@ export default function BotsControl() {
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>La IA dejará de responder temporalmente.</p>
               </div>
               <button 
-                className={\`btn \${waPaused ? 'btn-primary' : 'btn-danger'}\`}
+                className={`btn ${waPaused ? 'btn-primary' : 'btn-danger'}`}
                 onClick={() => setWaPaused(!waPaused)}
               >
                 {waPaused ? <><PlayCircle size={16} /> Reactivar IA</> : <><PauseCircle size={16} /> Pausar IA</>}

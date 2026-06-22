@@ -21,16 +21,16 @@ function Sidebar() {
         <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>LelaAdmin</h2>
       </div>
       <nav className="sidebar-nav">
-        <NavLink to="/" className={({ isActive }) => \`nav-item \${isActive ? 'active' : ''}\`} end>
+        <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
           <LayoutDashboard size={20} /> Dashboard
         </NavLink>
-        <NavLink to="/ai-settings" className={({ isActive }) => \`nav-item \${isActive ? 'active' : ''}\`}>
+        <NavLink to="/ai-settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Activity size={20} /> IA & Cascada
         </NavLink>
-        <NavLink to="/bots-control" className={({ isActive }) => \`nav-item \${isActive ? 'active' : ''}\`}>
+        <NavLink to="/bots-control" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Bot size={20} /> Control de Bots
         </NavLink>
-        <NavLink to="/maintenance" className={({ isActive }) => \`nav-item \${isActive ? 'active' : ''}\`}>
+        <NavLink to="/maintenance" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Database size={20} /> Caché & Logs
         </NavLink>
         

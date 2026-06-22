@@ -79,7 +79,7 @@ export default function Dashboard() {
                   </div>
                 </td>
                 <td style={{ padding: '16px' }}>
-                  <span className="badge" style={{ background: \`\${s.color}22\`, color: s.color, border: \`1px solid \${s.color}55\` }}>
+                  <span className="badge" style={{ background: `${s.color}22`, color: s.color, border: `1px solid ${s.color}55` }}>
                     {s.status}
                   </span>
                 </td>
