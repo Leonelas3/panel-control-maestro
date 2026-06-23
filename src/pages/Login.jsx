@@ -1,15 +1,23 @@
-import { ShieldCheck, Lock, User } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from "jwt-decode";
 
 export default function Login({ onLogin }) {
   const [step, setStep] = useState(1);
-  
-  const handleNext = (e) => {
-    e.preventDefault();
-    setStep(2);
+  const [error, setError] = useState('');
+
+  const handleGoogleSuccess = (credentialResponse) => {
+    const decoded = jwtDecode(credentialResponse.credential);
+    if (decoded.email && decoded.email.toLowerCase() === 'leonelastres@gmail.com') {
+      setError('');
+      setStep(2);
+    } else {
+      setError('Cuenta de Google no autorizada. Usa leonelastres@gmail.com');
+    }
   };
-  
-  const handleLogin = (e) => {
+
+  const handle2FA = (e) => {
     e.preventDefault();
     onLogin();
   };
@@ -30,24 +38,26 @@ export default function Login({ onLogin }) {
         </div>
         
         <h2 style={{ marginBottom: '8px' }}>Panel Maestro</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '0.9rem' }}>Acceso administrativo seguro</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '0.9rem' }}>Acceso administrativo restringido</p>
 
         {step === 1 ? (
-          <form onSubmit={handleNext}>
-            <div style={{ marginBottom: '16px', position: 'relative' }}>
-              <User size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
-              <input type="text" className="input-glass" placeholder="Usuario" required style={{ paddingLeft: '44px' }} />
+          <div>
+            <p style={{ marginBottom: '16px', fontSize: '0.9rem' }}>Inicia sesión de forma segura usando Google OAuth</p>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Fallo en la autenticación con Google')}
+                theme="filled_black"
+                text="continue_with"
+                shape="rectangular"
+              />
             </div>
-            <div style={{ marginBottom: '24px', position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
-              <input type="password" className="input-glass" placeholder="Contraseña" required style={{ paddingLeft: '44px' }} />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }}>
-              Continuar
-            </button>
-          </form>
+
+            {error && <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginTop: '16px' }}>{error}</p>}
+          </div>
         ) : (
-          <form onSubmit={handleLogin} className="fade-in">
+          <form onSubmit={handle2FA} className="fade-in">
             <p style={{ marginBottom: '16px', fontSize: '0.9rem' }}>Introduce el código de 6 dígitos de tu app de Autenticación (2FA)</p>
             <div style={{ marginBottom: '24px', position: 'relative' }}>
               <input 
