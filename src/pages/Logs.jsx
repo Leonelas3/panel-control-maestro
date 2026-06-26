@@ -14,8 +14,8 @@ export default function Logs() {
     'lela-digital.service',
     'nginx.service',
     'docker.service',
-    'analista-backend.service',
-    'admin-api.service'
+    'analista.service',
+    'lela-admin-api.service'
   ];
 
   const fetchLogs = async () => {
