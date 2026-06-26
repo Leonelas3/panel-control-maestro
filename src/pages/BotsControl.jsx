@@ -1,8 +1,58 @@
-import { MessageSquare, Mic, PauseCircle, PlayCircle, Settings2 } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Mic, PauseCircle, PlayCircle, Settings2, Save } from 'lucide-react';
+import axios from 'axios';
 
 export default function BotsControl() {
   const [waPaused, setWaPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const token = localStorage.getItem('admin_token');
+        const res = await axios.get('/api/admin/config', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const bots = res.data.bots || {};
+        
+        if (bots.openclaw && bots.openclaw.mode === 'paused') {
+          setWaPaused(true);
+        } else {
+          setWaPaused(false);
+        }
+      } catch (error) {
+        console.error("Error fetching config", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleTogglePause = async () => {
+    const newPausedState = !waPaused;
+    setWaPaused(newPausedState);
+    setSaving(true);
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      await axios.post('/api/admin/config', {
+        bots: {
+          openclaw: { enabled: true, mode: newPausedState ? 'paused' : 'autonomous' }
+        }
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      alert('Error cambiando estado del bot');
+      setWaPaused(!newPausedState); // rollback
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="fade-in" style={{ padding: '2rem' }}>Cargando bots...</div>;
 
   return (
     <div className="fade-in">
@@ -15,7 +65,9 @@ export default function BotsControl() {
         {/* WhatsApp Card */}
         <div className="glass-panel" style={{ position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, right: 0, padding: '16px' }}>
-            <span className="badge badge-success">Conectado</span>
+            <span className={`badge ${waPaused ? 'badge-warning' : 'badge-success'}`}>
+              {waPaused ? 'Pausado' : 'Conectado'}
+            </span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -47,7 +99,8 @@ export default function BotsControl() {
               </div>
               <button 
                 className={`btn ${waPaused ? 'btn-primary' : 'btn-danger'}`}
-                onClick={() => setWaPaused(!waPaused)}
+                onClick={handleTogglePause}
+                disabled={saving}
               >
                 {waPaused ? <><PlayCircle size={16} /> Reactivar IA</> : <><PauseCircle size={16} /> Pausar IA</>}
               </button>
