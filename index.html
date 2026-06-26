@@ -5,53 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>panel-control-maestro</title>
-    <script>
-    (function() {
-      const CHECK_INTERVAL = 30000;
-      let initialEtag = null;
-      let initialLastModified = null;
-      let hasUpdated = false;
 
-      async function checkForUpdate() {
-        if (hasUpdated) return;
-        try {
-          const res = await fetch(window.location.origin + '/', { method: 'HEAD', cache: 'no-store' });
-          const etag = res.headers.get('etag');
-          const lastModified = res.headers.get('last-modified');
-          if (!initialEtag && !initialLastModified) {
-            initialEtag = etag;
-            initialLastModified = lastModified;
-            return;
-          }
-          if ((etag && initialEtag && etag !== initialEtag) || 
-              (lastModified && initialLastModified && lastModified !== initialLastModified)) {
-            hasUpdated = true;
-            const popup = document.createElement('div');
-            popup.innerHTML = '🚀 <b>Actualizando aplicación...</b>';
-            Object.assign(popup.style, {
-              position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(59, 130, 246, 0.95)', color: 'white', padding: '12px 24px',
-              borderRadius: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-              zIndex: '999999', fontFamily: 'sans-serif', fontSize: '14px',
-              backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)',
-              animation: 'fadeInUpUpdater 0.5s ease-out forwards', textAlign: 'center'
-            });
-            const style = document.createElement('style'); style.id = 'updater-style';
-            style.innerHTML = '@keyframes fadeInUpUpdater { from { opacity: 0; bottom: -20px; } to { opacity: 1; bottom: 20px; } }';
-            document.head.appendChild(style);
-            document.body.appendChild(popup);
-            setTimeout(() => window.location.reload(true), 2500);
-          }
-        } catch (e) { }
-      }
-      setTimeout(checkForUpdate, 2000);
-      setInterval(checkForUpdate, CHECK_INTERVAL);
-      window.addEventListener('focus', () => setTimeout(checkForUpdate, 1000));
-    })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script src="/live-reload.js"></script>
   </body>
 </html>
