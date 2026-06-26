@@ -15,17 +15,28 @@ export default function AiSettings() {
   });
 
   const availableModels = [
-    { id: 'llama-3-70b-instruct', label: 'Llama 3 70B (Groq)' },
-    { id: 'llama-3-8b-instruct', label: 'Llama 3 8B (Groq)' },
+    // Groq (Gratis / Ultra Rápido)
+    { id: 'llama-3.1-70b-versatile', label: 'Llama 3.1 70B (Groq)' },
+    { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B (Groq)' },
+    { id: 'llama-3-70b-instruct', label: 'Llama 3 70B (Groq Legacy)' },
+    { id: 'llama-3-8b-instruct', label: 'Llama 3 8B (Groq Legacy)' },
     { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (Groq)' },
     { id: 'gemma-7b-it', label: 'Gemma 7B (Groq)' },
     { id: 'gemma2-9b-it', label: 'Gemma 2 9B (Groq)' },
+    // Google (Gratis tier)
     { id: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Google)' },
     { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Google)' },
+    // OpenRouter (Gratis)
     { id: 'openrouter/auto', label: 'OpenRouter Auto (Gratis)' },
-    { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B (OpenRouter)' },
-    { id: 'google/gemma-7b-it:free', label: 'Gemma 7B (OpenRouter)' },
-    { id: 'meta-llama/llama-3-8b-instruct:free', label: 'Llama 3 8B (OpenRouter)' },
+    { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B (OpenRouter Gratis)' },
+    { id: 'google/gemma-7b-it:free', label: 'Gemma 7B (OpenRouter Gratis)' },
+    { id: 'meta-llama/llama-3.1-8b-instruct:free', label: 'Llama 3.1 8B (OpenRouter Gratis)' },
+    { id: 'qwen/qwen-2-7b-instruct:free', label: 'Qwen 2 7B (OpenRouter Gratis)' },
+    { id: 'microsoft/phi-3-mini-128k-instruct:free', label: 'Phi-3 Mini 128K (OpenRouter Gratis)' },
+    { id: 'huggingfaceh4/zephyr-7b-beta:free', label: 'Zephyr 7B (OpenRouter Gratis)' },
+    { id: 'gryphe/mythomax-l2-13b:free', label: 'MythoMax 13B (OpenRouter Gratis)' },
+    { id: 'undi95/toppy-m-7b:free', label: 'Toppy M 7B (OpenRouter Gratis)' },
+    // Premium
     { id: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet (Premium)' },
     { id: 'gpt-4o', label: 'GPT-4o (Premium)' },
   ];
