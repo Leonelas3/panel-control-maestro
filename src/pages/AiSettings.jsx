@@ -7,13 +7,26 @@ export default function AiSettings() {
   const [saving, setSaving] = useState(false);
   
   // States mapped to the config.json
-  const [strategy, setStrategy] = useState('cascade');
-  const [effort, setEffort] = useState('balanced');
+  const [primaryModel, setPrimaryModel] = useState('gpt-4o');
+  const [fallbackModel, setFallbackModel] = useState('claude-3-5-sonnet-20240620');
+  const [cascadeEnabled, setCascadeEnabled] = useState(true);
+  const [temperature, setTemperature] = useState(0.7);
   
   const [prompts, setPrompts] = useState({
     whatsapp: "Eres un asistente de ventas profesional. Responde de manera concisa y amigable. Si no sabes algo, pide al cliente que espere un momento para revisión humana.",
     gastos: "Analiza esta transacción financiera y extrae los datos clave. Verifica si el importe parece inusualmente alto para la categoría asignada."
   });
+
+  const availableModels = [
+    { id: 'llama-3-70b-instruct', label: 'Llama 3 70B (Groq - Gratis/Rápido)' },
+    { id: 'llama-3-8b-instruct', label: 'Llama 3 8B (Groq - Gratis/Rápido)' },
+    { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (Groq - Gratis)' },
+    { id: 'gemma-7b-it', label: 'Gemma 7B (Groq - Gratis)' },
+    { id: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Google - Gratis/Avanzado)' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Google - Gratis/Rápido)' },
+    { id: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet (Anthropic - Premium)' },
+    { id: 'gpt-4o', label: 'GPT-4o (OpenAI - Premium)' },
+  ];
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -24,19 +37,11 @@ export default function AiSettings() {
         });
         const ai_settings = res.data.ai_settings || {};
         
-        // Map from API back to UI
-        if (ai_settings.cascade_enabled) setStrategy('cascade');
-        else if (ai_settings.primary_model === 'llama-3-70b-instruct') setStrategy('groq');
-        else if (ai_settings.primary_model === 'gemini-1.5-pro-latest') setStrategy('gemini');
-        else setStrategy('claude');
-
-        if (ai_settings.temperature === 0.2) setEffort('fast');
-        else if (ai_settings.temperature === 0.9) setEffort('deep');
-        else setEffort('balanced');
-        
-        if (ai_settings.prompts) {
-           setPrompts(ai_settings.prompts);
-        }
+        if (ai_settings.primary_model) setPrimaryModel(ai_settings.primary_model);
+        if (ai_settings.fallback_model) setFallbackModel(ai_settings.fallback_model);
+        if (ai_settings.cascade_enabled !== undefined) setCascadeEnabled(ai_settings.cascade_enabled);
+        if (ai_settings.temperature !== undefined) setTemperature(ai_settings.temperature);
+        if (ai_settings.prompts) setPrompts(ai_settings.prompts);
 
       } catch (error) {
         console.error("Error fetching config", error);
@@ -49,22 +54,14 @@ export default function AiSettings() {
 
   const handleSave = async () => {
     setSaving(true);
-    let cascade_enabled = strategy === 'cascade';
-    let primary_model = 'gpt-4o';
-    if (strategy === 'groq') primary_model = 'llama-3-70b-instruct';
-    if (strategy === 'gemini') primary_model = 'gemini-1.5-pro-latest';
-    if (strategy === 'claude') primary_model = 'claude-3-5-sonnet-20240620';
-    
-    let temperature = 0.7;
-    if (effort === 'fast') temperature = 0.2;
-    if (effort === 'deep') temperature = 0.9;
 
     const payload = {
       ai_settings: {
-        cascade_enabled,
-        primary_model,
-        temperature,
-        prompts
+        cascade_enabled: cascadeEnabled,
+        primary_model: primaryModel,
+        fallback_model: fallbackModel,
+        temperature: temperature,
+        prompts: prompts
       }
     };
 
@@ -101,44 +98,67 @@ export default function AiSettings() {
         <div className="glass-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <BrainCircuit size={24} color="var(--primary)" />
-            <h2 style={{ fontSize: '1.2rem' }}>Modelo Principal</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>Modelos y Estrategia</h2>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '16px' }}>
+              <input 
+                type="checkbox" 
+                checked={cascadeEnabled} 
+                onChange={(e) => setCascadeEnabled(e.target.checked)} 
+                style={{ width: '18px', height: '18px' }}
+              />
+              Activar Cascada Optimizada (Principal → Fallback)
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Modelo Principal</label>
+            <select className="input-glass" value={primaryModel} onChange={(e) => setPrimaryModel(e.target.value)} style={{ appearance: 'none' }}>
+              {availableModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Estrategia de Resolución</label>
-            <select className="input-glass" value={strategy} onChange={(e) => setStrategy(e.target.value)} style={{ appearance: 'none' }}>
-              <option value="cascade">Cascada Groq → Gemini (Recomendado)</option>
-              <option value="groq">Forzar Groq (Llama 3 - Muy rápido/Gratis)</option>
-              <option value="gemini">Forzar Gemini (Multimodal/Gratis)</option>
-              <option value="claude">Forzar Claude 3.5 (Premium - Pago)</option>
+            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Modelo de Respaldo (Fallback)</label>
+            <select className="input-glass" value={fallbackModel} onChange={(e) => setFallbackModel(e.target.value)} style={{ appearance: 'none' }} disabled={!cascadeEnabled}>
+              {availableModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Esfuerzo de la IA (Tokens/Coste)</label>
+            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Esfuerzo de la IA (Temperatura: {temperature})</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                className={`btn ${effort === 'fast' ? 'btn-primary' : 'btn-glass'}`}
-                onClick={() => setEffort('fast')}
+                className={`btn ${temperature <= 0.3 ? 'btn-primary' : 'btn-glass'}`}
+                onClick={() => setTemperature(0.2)}
                 style={{ flex: 1 }}
               >
-                <Zap size={16} /> Rápida
+                <Zap size={16} /> Exacta (0.2)
               </button>
               <button 
-                className={`btn ${effort === 'balanced' ? 'btn-primary' : 'btn-glass'}`}
-                onClick={() => setEffort('balanced')}
+                className={`btn ${temperature > 0.3 && temperature < 0.8 ? 'btn-primary' : 'btn-glass'}`}
+                onClick={() => setTemperature(0.7)}
                 style={{ flex: 1 }}
               >
-                <SlidersHorizontal size={16} /> Balanceada
+                <SlidersHorizontal size={16} /> Balanceada (0.7)
               </button>
               <button 
-                className={`btn ${effort === 'deep' ? 'btn-primary' : 'btn-glass'}`}
-                onClick={() => setEffort('deep')}
+                className={`btn ${temperature >= 0.8 ? 'btn-primary' : 'btn-glass'}`}
+                onClick={() => setTemperature(0.9)}
                 style={{ flex: 1 }}
               >
-                <BrainCircuit size={16} /> Detallista
+                <BrainCircuit size={16} /> Creativa (0.9)
               </button>
             </div>
+            <input 
+              type="range" 
+              min="0" max="1" step="0.1" 
+              value={temperature} 
+              onChange={(e) => setTemperature(parseFloat(e.target.value))}
+              style={{ width: '100%', marginTop: '12px' }}
+            />
           </div>
         </div>
 
@@ -149,8 +169,8 @@ export default function AiSettings() {
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Bot de Atención WhatsApp</label>
             <textarea 
               className="input-glass" 
-              rows="4" 
-              value={prompts.whatsapp}
+              rows="6" 
+              value={prompts.whatsapp || ""}
               onChange={(e) => setPrompts({...prompts, whatsapp: e.target.value})}
               style={{ resize: 'vertical' }}
             />
@@ -160,8 +180,8 @@ export default function AiSettings() {
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Analizador de Gastos</label>
             <textarea 
               className="input-glass" 
-              rows="3" 
-              value={prompts.gastos}
+              rows="5" 
+              value={prompts.gastos || ""}
               onChange={(e) => setPrompts({...prompts, gastos: e.target.value})}
               style={{ resize: 'vertical' }}
             />

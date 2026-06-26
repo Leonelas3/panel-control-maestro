@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Settings2, Play, RefreshCw, Cpu } from 'lucide-react';
+import { Terminal, Settings2, Play, RefreshCw, Cpu, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 
 export default function OpenClaw() {
   const [logs, setLogs] = useState([]);
   const [command, setCommand] = useState('');
   const [restarting, setRestarting] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [promptResponse, setPromptResponse] = useState('');
+  const [sendingPrompt, setSendingPrompt] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -13,8 +16,6 @@ export default function OpenClaw() {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    // Si la app corre en dev, puede que necesitemos apuntar directo al puerto 8006, 
-    // pero asumiendo que corre en prod detrás de Nginx
     const wsUrl = `${protocol}//${host}/api/admin/logs/openclaw?token=${token}`;
     
     const ws = new WebSocket(wsUrl);
@@ -28,7 +29,7 @@ export default function OpenClaw() {
     };
     
     ws.onerror = () => {
-      setLogs(prev => [...prev, 'Error al conectar al WebSocket de logs.']);
+      setLogs(prev => [...prev, 'Error al conectar al WebSocket de logs (simulados).']);
     };
     
     ws.onclose = () => {
@@ -54,13 +55,40 @@ export default function OpenClaw() {
     }
   };
 
-  const executeCommand = (e) => {
+  const executeCommand = async (e) => {
     e.preventDefault();
     if (!command.trim()) return;
     
-    // Simular ejecución
-    setLogs(prev => [...prev, `> ${command}`, `Comando '${command}' ejecutado. (Simulación)`]);
+    const cmdToRun = command;
+    setLogs(prev => [...prev, `> ${cmdToRun}`]);
     setCommand('');
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await axios.post('/api/admin/openclaw/execute', { command: cmdToRun }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLogs(prev => [...prev, res.data.output || '(sin salida)']);
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.response?.data?.detail || error.message}`]);
+    }
+  };
+
+  const handleSendPrompt = async () => {
+    if (!prompt.trim()) return;
+    setSendingPrompt(true);
+    setPromptResponse('Pensando...');
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await axios.post('/api/admin/openclaw/prompt', { prompt }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPromptResponse(res.data.response || '(sin respuesta)');
+    } catch (error) {
+      setPromptResponse(`Error: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setSendingPrompt(false);
+    }
   };
 
   return (
@@ -69,7 +97,7 @@ export default function OpenClaw() {
         <div className="flex-between">
           <div>
             <h1>OpenClaw Core</h1>
-            <p style={{ color: 'var(--text-muted)' }}>Consola de comandos y ajustes profundos del motor IA</p>
+            <p style={{ color: 'var(--text-muted)' }}>Consola de comandos, pruebas de prompt y ajustes del motor</p>
           </div>
           <button className="btn btn-danger" onClick={handleRestart} disabled={restarting}>
             <RefreshCw size={16} className={restarting ? "spin" : ""} /> {restarting ? "Reiniciando..." : "Reiniciar OpenClaw"}
@@ -81,7 +109,7 @@ export default function OpenClaw() {
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <Terminal size={20} color="var(--primary)" />
-            <h2 style={{ fontSize: '1.2rem' }}>Terminal Interactiva</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>Terminal Docker / OpenClaw</h2>
           </div>
           
           <div style={{ 
@@ -93,11 +121,12 @@ export default function OpenClaw() {
             fontSize: '0.9rem',
             overflowY: 'auto',
             minHeight: '200px',
-            marginBottom: '16px'
+            marginBottom: '16px',
+            wordBreak: 'break-all'
           }}>
-            <div style={{ color: 'var(--success)', marginBottom: '8px' }}>OpenClaw Shell v1.0. Conectado.</div>
+            <div style={{ color: 'var(--success)', marginBottom: '8px' }}>OpenClaw Shell v1.0. Ejecutando dentro del contenedor.</div>
             {logs.map((l, i) => (
-              <div key={i} style={{ color: l.startsWith('>') ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '4px' }}>
+              <div key={i} style={{ color: l.startsWith('>') ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '4px', whiteSpace: 'pre-wrap' }}>
                 {l}
               </div>
             ))}
@@ -108,7 +137,7 @@ export default function OpenClaw() {
               type="text" 
               className="input-glass" 
               style={{ flex: 1 }} 
-              placeholder="Escribe un comando (/ayuda)..." 
+              placeholder="Ej: ls -la /app o cat .env" 
               value={command}
               onChange={(e) => setCommand(e.target.value)}
             />
@@ -118,33 +147,59 @@ export default function OpenClaw() {
           </form>
         </div>
 
-        <div className="glass-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <Cpu size={20} color="var(--warning)" />
-            <h2 style={{ fontSize: '1.2rem' }}>Variables de Entorno Activas</h2>
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
-            Estas configuraciones se aplican directamente al contenedor Docker de OpenClaw.
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="glass-panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <MessageSquare size={20} color="var(--accent)" />
+              <h2 style={{ fontSize: '1.2rem' }}>Ventana de Prompts (Test API)</h2>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>
+              Prueba los prompts directamente contra la API de OpenClaw local.
+            </p>
+            <textarea 
+              className="input-glass" 
+              rows="3" 
+              placeholder="Escribe el prompt aquí..."
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              style={{ resize: 'vertical', width: '100%', marginBottom: '12px' }}
+            />
+            <button className="btn btn-primary" style={{ width: '100%', marginBottom: '16px' }} onClick={handleSendPrompt} disabled={sendingPrompt}>
+              {sendingPrompt ? 'Enviando...' : 'Probar Prompt'}
+            </button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>OPENCLAW_MODE</label>
-              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', fontFamily: 'monospace' }}>PRODUCTION</div>
+            {promptResponse && (
+              <div style={{ 
+                background: 'rgba(0,0,0,0.3)', 
+                padding: '12px', 
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                color: 'var(--text-light)',
+                whiteSpace: 'pre-wrap'
+              }}>
+                <strong>Respuesta:</strong><br/>
+                {promptResponse}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <Cpu size={20} color="var(--warning)" />
+              <h2 style={{ fontSize: '1.2rem' }}>Variables de Entorno</h2>
             </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>MEMORY_LIMIT</label>
-              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', fontFamily: 'monospace' }}>2048M</div>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>DATABASE_URL</label>
-              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', fontFamily: 'monospace', filter: 'blur(4px)' }}>postgres://user:pass@localhost...</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>OPENCLAW_MODE</label>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', fontFamily: 'monospace' }}>PRODUCTION</div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>MEMORY_LIMIT</label>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', fontFamily: 'monospace' }}>2048M</div>
+              </div>
             </div>
           </div>
-          
-          <button className="btn btn-glass" style={{ width: '100%', marginTop: '24px' }}>
-            <Settings2 size={16} /> Editar Variables (.env)
-          </button>
         </div>
       </div>
     </div>
