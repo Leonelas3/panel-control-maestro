@@ -16,7 +16,7 @@ function useVersionCheck() {
 
     const checkVersion = async () => {
       try {
-        const res = await fetch('/api/version');
+        const res = await fetch('/api/admin/version');
         if (res.ok) {
           const data = await res.json();
           if (currentVersion === null) {
