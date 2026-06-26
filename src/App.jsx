@@ -6,7 +6,40 @@ import BotsControl from './pages/BotsControl';
 import OpenClaw from './pages/OpenClaw';
 import Logs from './pages/Logs';
 import Login from './pages/Login';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+function useVersionCheck() {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    let currentVersion = null;
+
+    const checkVersion = async () => {
+      try {
+        const res = await fetch('/api/version');
+        if (res.ok) {
+          const data = await res.json();
+          if (currentVersion === null) {
+            currentVersion = data.version;
+          } else if (currentVersion !== data.version) {
+            setIsUpdating(true);
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          }
+        }
+      } catch (err) {
+        // Ignore network errors
+      }
+    };
+
+    const interval = setInterval(checkVersion, 30000);
+    checkVersion();
+    return () => clearInterval(interval);
+  }, []);
+
+  return isUpdating;
+}
 
 function ProtectedRoute({ children, isAuthenticated }) {
   if (!isAuthenticated) return <Navigate to="/login" />;
@@ -64,9 +97,20 @@ function App() {
     return !!localStorage.getItem('admin_token');
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isUpdating = useVersionCheck();
 
   return (
     <Router>
+      {isUpdating && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)', color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, fontSize: '1.5rem', fontWeight: 'bold'
+        }}>
+          Actualizando sistema...
+        </div>
+      )}
       {!isAuthenticated ? (
         <Routes>
           <Route path="/login" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
