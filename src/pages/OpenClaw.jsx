@@ -44,10 +44,10 @@ export default function OpenClaw() {
     setRestarting(true);
     try {
       const token = localStorage.getItem('admin_token');
-      await axios.post('/api/admin/services/docker.service/restart', {}, {
+      await axios.post('/api/admin/services/openclaw/restart', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('OpenClaw (Docker) reiniciado correctamente.');
+      alert('OpenClaw Systemd Service reiniciado.');
     } catch (error) {
       alert(`Error al reiniciar: ${error.response?.data?.detail || error.message}`);
     } finally {
@@ -109,7 +109,7 @@ export default function OpenClaw() {
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <Terminal size={20} color="var(--primary)" />
-            <h2 style={{ fontSize: '1.2rem' }}>Terminal Docker / OpenClaw</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>Terminal Nativa VPS (root)</h2>
           </div>
           
           <div style={{ 
@@ -124,7 +124,7 @@ export default function OpenClaw() {
             marginBottom: '16px',
             wordBreak: 'break-all'
           }}>
-            <div style={{ color: 'var(--success)', marginBottom: '8px' }}>OpenClaw Shell v1.0. Ejecutando dentro del contenedor.</div>
+            <div style={{ color: 'var(--success)', marginBottom: '8px' }}>Terminal Proxy VPS conectada (root). Precaución.</div>
             {logs.map((l, i) => (
               <div key={i} style={{ color: l.startsWith('>') ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '4px', whiteSpace: 'pre-wrap' }}>
                 {l}
@@ -137,7 +137,7 @@ export default function OpenClaw() {
               type="text" 
               className="input-glass" 
               style={{ flex: 1 }} 
-              placeholder="Ej: ls -la /app o cat .env" 
+              placeholder="Ej: ls -la /root/services o systemctl status nginx" 
               value={command}
               onChange={(e) => setCommand(e.target.value)}
             />

@@ -1,31 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, BrainCircuit, Save, SlidersHorizontal } from 'lucide-react';
+import { Zap, BrainCircuit, Save, SlidersHorizontal, ArrowUp, ArrowDown, X, Plus } from 'lucide-react';
 import axios from 'axios';
 
 export default function AiSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // States mapped to the config.json
-  const [primaryModel, setPrimaryModel] = useState('gpt-4o');
-  const [fallbackModel, setFallbackModel] = useState('claude-3-5-sonnet-20240620');
-  const [cascadeEnabled, setCascadeEnabled] = useState(true);
+  const [cascadeModels, setCascadeModels] = useState([]);
   const [temperature, setTemperature] = useState(0.7);
   
   const [prompts, setPrompts] = useState({
-    whatsapp: "Eres un asistente de ventas profesional. Responde de manera concisa y amigable. Si no sabes algo, pide al cliente que espere un momento para revisión humana.",
-    gastos: "Analiza esta transacción financiera y extrae los datos clave. Verifica si el importe parece inusualmente alto para la categoría asignada."
+    whatsapp: "Eres un asistente de ventas profesional. Responde de manera concisa y amigable.",
+    gastos: "Analiza esta transacción financiera y extrae los datos clave."
   });
 
   const availableModels = [
-    { id: 'llama-3-70b-instruct', label: 'Llama 3 70B (Groq - Gratis/Rápido)' },
-    { id: 'llama-3-8b-instruct', label: 'Llama 3 8B (Groq - Gratis/Rápido)' },
-    { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (Groq - Gratis)' },
-    { id: 'gemma-7b-it', label: 'Gemma 7B (Groq - Gratis)' },
-    { id: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Google - Gratis/Avanzado)' },
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Google - Gratis/Rápido)' },
-    { id: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet (Anthropic - Premium)' },
-    { id: 'gpt-4o', label: 'GPT-4o (OpenAI - Premium)' },
+    { id: 'llama-3-70b-instruct', label: 'Llama 3 70B (Groq)' },
+    { id: 'llama-3-8b-instruct', label: 'Llama 3 8B (Groq)' },
+    { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B (Groq)' },
+    { id: 'gemma-7b-it', label: 'Gemma 7B (Groq)' },
+    { id: 'gemma2-9b-it', label: 'Gemma 2 9B (Groq)' },
+    { id: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Google)' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Google)' },
+    { id: 'openrouter/auto', label: 'OpenRouter Auto (Gratis)' },
+    { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B (OpenRouter)' },
+    { id: 'google/gemma-7b-it:free', label: 'Gemma 7B (OpenRouter)' },
+    { id: 'meta-llama/llama-3-8b-instruct:free', label: 'Llama 3 8B (OpenRouter)' },
+    { id: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet (Premium)' },
+    { id: 'gpt-4o', label: 'GPT-4o (Premium)' },
   ];
 
   useEffect(() => {
@@ -37,9 +39,15 @@ export default function AiSettings() {
         });
         const ai_settings = res.data.ai_settings || {};
         
-        if (ai_settings.primary_model) setPrimaryModel(ai_settings.primary_model);
-        if (ai_settings.fallback_model) setFallbackModel(ai_settings.fallback_model);
-        if (ai_settings.cascade_enabled !== undefined) setCascadeEnabled(ai_settings.cascade_enabled);
+        if (ai_settings.cascade_models && Array.isArray(ai_settings.cascade_models)) {
+          setCascadeModels(ai_settings.cascade_models);
+        } else if (ai_settings.primary_model) {
+          const initCascade = [ai_settings.primary_model];
+          if (ai_settings.fallback_model && ai_settings.cascade_enabled) {
+            initCascade.push(ai_settings.fallback_model);
+          }
+          setCascadeModels(initCascade);
+        }
         if (ai_settings.temperature !== undefined) setTemperature(ai_settings.temperature);
         if (ai_settings.prompts) setPrompts(ai_settings.prompts);
 
@@ -54,17 +62,13 @@ export default function AiSettings() {
 
   const handleSave = async () => {
     setSaving(true);
-
     const payload = {
       ai_settings: {
-        cascade_enabled: cascadeEnabled,
-        primary_model: primaryModel,
-        fallback_model: fallbackModel,
+        cascade_models: cascadeModels,
         temperature: temperature,
         prompts: prompts
       }
     };
-
     try {
       const token = localStorage.getItem('admin_token');
       await axios.post('/api/admin/config', payload, {
@@ -78,6 +82,28 @@ export default function AiSettings() {
     }
   };
 
+  const addModel = (modelId) => {
+    if (!cascadeModels.includes(modelId)) {
+      setCascadeModels([...cascadeModels, modelId]);
+    }
+  };
+
+  const removeModel = (index) => {
+    const newCascade = [...cascadeModels];
+    newCascade.splice(index, 1);
+    setCascadeModels(newCascade);
+  };
+
+  const moveModel = (index, direction) => {
+    if (direction === -1 && index === 0) return;
+    if (direction === 1 && index === cascadeModels.length - 1) return;
+    const newCascade = [...cascadeModels];
+    const temp = newCascade[index];
+    newCascade[index] = newCascade[index + direction];
+    newCascade[index + direction] = temp;
+    setCascadeModels(newCascade);
+  };
+
   if (loading) return <div className="fade-in" style={{ padding: '2rem' }}>Cargando configuración de IA...</div>;
 
   return (
@@ -86,7 +112,7 @@ export default function AiSettings() {
         <div className="flex-between">
           <div>
             <h1>IA & Cascada Optimizada</h1>
-            <p style={{ color: 'var(--text-muted)' }}>Configuración de modelos de lenguaje y límites de coste</p>
+            <p style={{ color: 'var(--text-muted)' }}>Configuración del orden de ejecución (array) de modelos gratuitos y premium</p>
           </div>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
@@ -98,36 +124,35 @@ export default function AiSettings() {
         <div className="glass-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <BrainCircuit size={24} color="var(--primary)" />
-            <h2 style={{ fontSize: '1.2rem' }}>Modelos y Estrategia</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>Tu Cascada (Orden de Ejecución)</h2>
           </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '16px' }}>
-              <input 
-                type="checkbox" 
-                checked={cascadeEnabled} 
-                onChange={(e) => setCascadeEnabled(e.target.checked)} 
-                style={{ width: '18px', height: '18px' }}
-              />
-              Activar Cascada Optimizada (Principal → Fallback)
-            </label>
+          
+          <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {cascadeModels.length === 0 ? (
+              <div style={{ padding: '12px', border: '1px dashed var(--border-color)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No hay modelos en la cascada. Agrega desde la lista de la derecha.
+              </div>
+            ) : (
+              cascadeModels.map((modelId, index) => {
+                const modelDef = availableModels.find(m => m.id === modelId) || { label: modelId };
+                return (
+                  <div key={modelId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '50%', fontSize: '12px', fontWeight: 'bold' }}>{index + 1}</span>
+                      <span>{modelDef.label}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className="btn btn-icon" onClick={() => moveModel(index, -1)} disabled={index === 0}><ArrowUp size={16} /></button>
+                      <button className="btn btn-icon" onClick={() => moveModel(index, 1)} disabled={index === cascadeModels.length - 1}><ArrowDown size={16} /></button>
+                      <button className="btn btn-icon" onClick={() => removeModel(index)} style={{ color: '#ef4444' }}><X size={16} /></button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Modelo Principal</label>
-            <select className="input-glass" value={primaryModel} onChange={(e) => setPrimaryModel(e.target.value)} style={{ appearance: 'none' }}>
-              {availableModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Modelo de Respaldo (Fallback)</label>
-            <select className="input-glass" value={fallbackModel} onChange={(e) => setFallbackModel(e.target.value)} style={{ appearance: 'none' }} disabled={!cascadeEnabled}>
-              {availableModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
-
-          <div>
+          
+          <div style={{ marginTop: '32px' }}>
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Esfuerzo de la IA (Temperatura: {temperature})</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
@@ -163,24 +188,38 @@ export default function AiSettings() {
         </div>
 
         <div className="glass-panel">
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>System Prompts</h2>
-          
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Modelos Disponibles</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+            {availableModels.map(m => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)', opacity: cascadeModels.includes(m.id) ? 0.5 : 1 }}>
+                <span>{m.label}</span>
+                <button 
+                  className="btn btn-glass btn-icon" 
+                  onClick={() => addModel(m.id)}
+                  disabled={cascadeModels.includes(m.id)}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <h2 style={{ fontSize: '1.2rem', marginTop: '32px', marginBottom: '16px' }}>System Prompts</h2>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Bot de Atención WhatsApp</label>
             <textarea 
               className="input-glass" 
-              rows="6" 
+              rows="4" 
               value={prompts.whatsapp || ""}
               onChange={(e) => setPrompts({...prompts, whatsapp: e.target.value})}
               style={{ resize: 'vertical' }}
             />
           </div>
-
           <div>
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Analizador de Gastos</label>
             <textarea 
               className="input-glass" 
-              rows="5" 
+              rows="4" 
               value={prompts.gastos || ""}
               onChange={(e) => setPrompts({...prompts, gastos: e.target.value})}
               style={{ resize: 'vertical' }}
